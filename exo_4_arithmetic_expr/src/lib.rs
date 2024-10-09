@@ -42,6 +42,48 @@ mod test {
         assert_eq!(expr.evaluate(&vars), 9);
 
         vars.insert(1, 5);
-        assert_eq!(expr.evaluate(&vars), 5);
+        assert_eq!(expr.evaluate(&vars), 15);
+    }
+
+    #[test]
+    fn sub() {
+        let rpn = "7 9 -";
+        let expr = ArithmeticExpr::from_rpn(rpn);
+
+        assert_eq!(expr.evaluate(&HashMap::default()), -2);
+    }
+
+    #[test]
+    fn depth_two() {
+        let rpn = "7 9 - 4 +";
+        let expr = ArithmeticExpr::from_rpn(rpn);
+
+        assert_eq!(expr.evaluate(&HashMap::default()), 2);
+    }
+
+    #[test]
+    fn odd_sum() {
+        let rpn = "1 3 + 5 + 7 9 + 11 + +";
+        let expr = ArithmeticExpr::from_rpn(rpn);
+
+        assert_eq!(expr.size(), 11);
+        assert_eq!(expr.evaluate(&HashMap::default()), 36);
+    }
+
+    #[test]
+    fn many_variables() {
+        let rpn = "x_1 1 + x_2 + x_3 2 * *";
+        let expr = ArithmeticExpr::from_rpn(rpn);
+
+        let mut vars = HashMap::default();
+        vars.insert(1, 8);
+        vars.insert(2, 2);
+        vars.insert(3, 5);
+        assert_eq!(expr.evaluate(&vars), 110);
+
+        vars.insert(1, 984);
+        vars.insert(2, 17);
+        vars.insert(3, 0);
+        assert_eq!(expr.evaluate(&vars), 0);
     }
 }
