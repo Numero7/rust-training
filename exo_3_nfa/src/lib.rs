@@ -1,34 +1,67 @@
 use std::collections::HashSet;
 
+pub struct Transition {
+    from: State,
+    letter: Letter,
+    to: State,
+}
+
 pub struct Nfa {
-    // TODO: add members
+    states: HashSet<State>,
+    initial: HashSet<State>,
+    accepting: HashSet<State>,
+    transitions: Vec<Transition>,
 }
 
 type State = usize;
+type Letter = char;
 
 impl Nfa {
     pub fn new(n_states: usize) -> Self {
-        todo!("Create a new Nfa with n_states states")
+        return Nfa {
+            states: (1..=n_states).collect(),
+            initial: HashSet::new(),
+            accepting: HashSet::new(),
+            transitions: vec![],
+        };
     }
 
     pub fn add_transition(&mut self, from: State, to: State, label: char) {
-        todo!("Add a transition to Self")
+        self.transitions.push(Transition {
+            from: from,
+            letter: label,
+            to: to,
+        });
     }
 
     pub fn add_initial(&mut self, q: State) {
-        todo!("Add q to the set of initial states");
+        self.states.insert(q);
+        self.initial.insert(q);
     }
 
     pub fn add_final(&mut self, q: State) {
-        todo!("Add q to the set of final states");
+        self.states.insert(q);
+        self.accepting.insert(q);
     }
 
     fn step(&self, states: HashSet<State>, a: char) -> HashSet<State> {
-        todo!("Compute the transition labeled by a in Self")
+        return states
+            .into_iter()
+            .flat_map(|q| {
+                self.transitions
+                    .iter()
+                    .filter(move |t| t.from == q && t.letter == a)
+                    .map(|t| t.to.clone())
+            })
+            .collect();
     }
 
     pub fn accepts(&self, s: &str) -> bool {
-        todo!("Test whether s is in the language of Self")
+        let mut reachable_states = self.initial.clone();
+        for a in s.chars() {
+            reachable_states = self.step(reachable_states, a)
+        }
+        return reachable_states.iter().any(|q| self.accepting.contains(q));
     }
 }
 
