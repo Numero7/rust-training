@@ -47,11 +47,11 @@ impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
     }
 
     fn get_root_key(&self) -> Option<K> {
-        self.node.as_ref().map_or(None, |x| Some(x.0))
+        self.node.as_ref().and_then(|x| Some(x.0))
     }
 
     fn get_root_val(&self) -> Option<V> {
-        self.node.as_ref().map_or(None, |x| Some(x.1))
+        self.node.as_ref().and_then(|x| Some(x.1))
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
@@ -114,7 +114,7 @@ impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
             } else if *key > root.0 {
                 self.right.as_mut()?.remove(key)
             } else {
-                self.extract_root().map_or(None, |t| Some(t.1))
+                self.extract_root().and_then(|t| Some(t.1))
             }
         } else {
             None
@@ -181,7 +181,7 @@ impl<K, V> Iterator for BinaryTreeMapIntoIterator<K, V> {
                 }
                 self._stack.push_front(Box::new(tree));
             }
-            node.map_or(None, |node| Some((node.0, node.1)))
+            node.and_then(|node| Some((node.0, node.1)))
         } else {
             None
         }
