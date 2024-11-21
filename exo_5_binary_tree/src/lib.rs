@@ -1,39 +1,138 @@
+use std::collections::VecDeque;
+
 /// Maps keys of type `K` to values of type `V`.
 pub struct BinaryTreeMap<K, V> {
     // TODO: add struct members,
-    // remove _marker below
-    _marker: (K, V),
+    node: Option<Box<(K, V)>>,
+    left: Option<Box<BinaryTreeMap<K, V>>>,  // Left child
+    right: Option<Box<BinaryTreeMap<K, V>>>, // Right child
 }
 
 /// Hint: you may need to define additional structs/enums,
 /// or add trait bounds, etc.
-impl<K, V> BinaryTreeMap<K, V> {
+impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
     pub fn new() -> Self {
-        todo!("Create a new empty map")
+        //todo!("Create a new empty map")
+        Self {
+            node: None,
+            left: None,
+            right: None,
+        }
     }
 
-    pub fn len(&self) -> usize {
-        todo!("Return the number of elements in the map")
+    pub fn new_leaf(key: K, value: V) -> Self {
+        //todo!("Create a new empty map")
+        Self {
+            node: Some(Box::new((key, value))),
+            left: None,
+            right: None,
+        }
     }
 
     pub fn is_empty(&self) -> bool {
-        todo!("Whether the map is empty")
+        //todo!("Whether the map is empty")
+        return self.node.is_none();
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        //todo!("Whether the map is empty")
+        return self.node.is_some() && self.left.is_none() && self.right.is_none();
+    }
+
+    pub fn len(&self) -> usize {
+        //todo!("Return the number of elements in the map")
+        self.node.as_ref().map_or(0, |_| 1)
+            + self.left.as_ref().map_or(0, |left| left.len())
+            + self.right.as_ref().map_or(0, |right| right.len())
+    }
+
+    fn get_root_key(&self) -> Option<K> {
+        self.node.as_ref().map_or(None, |x| Some(x.0))
+    }
+
+    fn get_root_val(&self) -> Option<V> {
+        self.node.as_ref().map_or(None, |x| Some(x.1))
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        todo!("Insert the key value pair in the map, return the previous value if there was one")
+        match self.get_root_key() {
+            None => {
+                self.node = Some(Box::new((key, value)));
+                None
+            }
+            Some(root_key) => {
+                if key == root_key {
+                    let root_val = self.get_root_val();
+                    self.node = Some(Box::new((key, value)));
+                    root_val
+                } else if key < root_key {
+                    match self.left.as_mut() {
+                        None => {
+                            self.left = Some(Box::new(BinaryTreeMap::new_leaf(key, value)));
+                            None
+                        }
+                        Some(t) => t.insert(key, value),
+                    }
+                } else {
+                    match self.right.as_mut() {
+                        None => {
+                            self.right = Some(Box::new(BinaryTreeMap::new_leaf(key, value)));
+                            None
+                        }
+                        Some(t) => t.insert(key, value),
+                    }
+                }
+            }
+        }
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
-        todo!("Retrieve the value associated to a key if it exists")
+        //todo!("Retrieve the value associated to a key if it exists")
+        match self.node {
+            None => None,
+            Some(ref root) => {
+                if root.0 == *key {
+                    Some(&root.1)
+                } else if root.0 > *key {
+                    self.left.as_ref()?.get(key)
+                } else {
+                    self.right.as_ref()?.get(key)
+                }
+            }
+        }
     }
 
     pub fn contains(&self, key: &K) -> bool {
-        todo!("Whether the map contains the given key")
+        //todo!("Whether the map contains the given key")
+        self.get(key).is_some()
     }
 
     pub fn remove(&mut self, key: &K) -> Option<V> {
-        todo!("If there is a value with the given key, remove it from the map and return it")
+        //todo!("If there is a value with the given key, remove it from the map and return it")
+        match self.node.as_mut() {
+            None => None,
+            Some(root) => {
+                if *key < root.0 {
+                    self.left.as_mut()?.remove(key)
+                } else if *key > root.0 {
+                    self.right.as_mut()?.remove(key)
+                } else {
+                    self.extract_root().map_or(None, |t| Some(t.1))
+                }
+            }
+        }
+    }
+
+    fn extract_root(&mut self) -> Option<Box<(K, V)>> {
+        if let Some(root) = self.node.take() {
+            self.node = self.left.as_mut().map_or(None, |t| t.extract_root());
+            if self.node.is_none() {
+                self.node = self.right.as_mut().map_or(None, |t| t.extract_root());
+            }
+            Some(root)
+        } else {
+            None
+        }
     }
 }
 
@@ -42,25 +141,51 @@ impl<K, V> BinaryTreeMap<K, V> {
 ///
 /// Fix this definition !
 /// It should consume the map and return owned pairs, not references!
-impl<K, V> IntoIterator for BinaryTreeMap<K, V> {
+impl<K: Ord, V> IntoIterator for BinaryTreeMap<K, V> {
     type Item = (K, V);
 
     type IntoIter = BinaryTreeMapIntoIterator<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        BinaryTreeMapIntoIterator::new(self)
     }
 }
 
 pub struct BinaryTreeMapIntoIterator<K, V> {
-    _marker: (K, V),
+    //depth first exploration of the tree based on stack
+    _stack: VecDeque<Box<BinaryTreeMap<K, V>>>,
+}
+
+impl<K, V> BinaryTreeMapIntoIterator<K, V> {
+    //store the root on the stack
+    fn new(t: BinaryTreeMap<K, V>) -> Self {
+        let mut q = VecDeque::new();
+        q.push_front(Box::new(t));
+        Self { _stack: q }
+    }
 }
 
 impl<K, V> Iterator for BinaryTreeMapIntoIterator<K, V> {
+    //when asked for some element, output the current node content
+    //if right son exists, push the RLL...L branch on the stack
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if let Some(current) = self._stack.pop_front().take() {
+            let mut tree = *current;
+            let node: Option<Box<(K, V)>> = tree.node.take();
+            if let Some(right) = tree.right.take() {
+                tree = *right;
+                while let Some(left) = tree.left.take() {
+                    self._stack.push_front(Box::new(tree));
+                    tree = *left;
+                }
+                self._stack.push_front(Box::new(tree));
+            }
+            node.map_or(None, |node| Some((node.0, node.1)))
+        } else {
+            None
+        }
     }
 }
 
@@ -72,8 +197,11 @@ mod tests {
     fn map_insert_contains() {
         let mut map = BinaryTreeMap::new();
 
+        print!("insert 1 (10,12)\n");
         map.insert(1, (10, 12));
+        print!("insert 4 (23,17)\n");
         map.insert(4, (23, 17));
+        print!("insert 2 (1,1)\n");
         map.insert(2, (1, 1));
 
         assert_eq!(map.get(&0), None);
