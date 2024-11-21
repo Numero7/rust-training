@@ -88,17 +88,16 @@ impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
 
     pub fn get(&self, key: &K) -> Option<&V> {
         //todo!("Retrieve the value associated to a key if it exists")
-        match self.node {
-            None => None,
-            Some(ref root) => {
-                if root.0 == *key {
-                    Some(&root.1)
-                } else if root.0 > *key {
-                    self.left.as_ref()?.get(key)
-                } else {
-                    self.right.as_ref()?.get(key)
-                }
+        if let Some(ref root) = self.node {
+            if root.0 == *key {
+                Some(&root.1)
+            } else if root.0 > *key {
+                self.left.as_ref()?.get(key)
+            } else {
+                self.right.as_ref()?.get(key)
             }
+        } else {
+            None
         }
     }
 
@@ -109,26 +108,26 @@ impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
 
     pub fn remove(&mut self, key: &K) -> Option<V> {
         //todo!("If there is a value with the given key, remove it from the map and return it")
-        match self.node.as_mut() {
-            None => None,
-            Some(root) => {
-                if *key < root.0 {
-                    self.left.as_mut()?.remove(key)
-                } else if *key > root.0 {
-                    self.right.as_mut()?.remove(key)
-                } else {
-                    self.extract_root().map_or(None, |t| Some(t.1))
-                }
+        if let Some(root) = self.node.as_mut() {
+            if *key < root.0 {
+                self.left.as_mut()?.remove(key)
+            } else if *key > root.0 {
+                self.right.as_mut()?.remove(key)
+            } else {
+                self.extract_root().map_or(None, |t| Some(t.1))
             }
+        } else {
+            None
         }
     }
 
     fn extract_root(&mut self) -> Option<Box<(K, V)>> {
         if let Some(root) = self.node.take() {
-            self.node = self.left.as_mut().map_or(None, |t| t.extract_root());
-            if self.node.is_none() {
-                self.node = self.right.as_mut().map_or(None, |t| t.extract_root());
-            }
+            self.node = self
+                .left
+                .as_mut()
+                .and_then(|t| t.extract_root())
+                .or_else(|| self.right.as_mut().and_then(|t| t.extract_root()));
             Some(root)
         } else {
             None
