@@ -158,9 +158,19 @@ pub struct BinaryTreeMapIntoIterator<K, V> {
 impl<K, V> BinaryTreeMapIntoIterator<K, V> {
     //store the root on the stack
     fn new(t: BinaryTreeMap<K, V>) -> Self {
-        let mut q = VecDeque::new();
-        q.push_front(Box::new(t));
-        Self { _stack: q }
+        let mut _self = Self {
+            _stack: VecDeque::new(),
+        };
+        _self.stack_left_most_branch(t);
+        _self
+    }
+
+    fn stack_left_most_branch(&mut self, mut t: BinaryTreeMap<K, V>) {
+        while let Some(left) = t.left.take() {
+            self._stack.push_front(Box::new(t));
+            t = *left;
+        }
+        self._stack.push_front(Box::new(t));
     }
 }
 
@@ -170,16 +180,11 @@ impl<K, V> Iterator for BinaryTreeMapIntoIterator<K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(current) = self._stack.pop_front().take() {
-            let mut tree = *current;
-            let node: Option<Box<(K, V)>> = tree.node.take();
-            if let Some(right) = tree.right.take() {
-                tree = *right;
-                while let Some(left) = tree.left.take() {
-                    self._stack.push_front(Box::new(tree));
-                    tree = *left;
-                }
-                self._stack.push_front(Box::new(tree));
+        if let Some(current) = self._stack.pop_front() {
+            let mut current = *current;
+            let node: Option<Box<(K, V)>> = current.node.take();
+            if let Some(right) = current.right.take() {
+                self.stack_left_most_branch(*right);
             }
             node.and_then(|node| Some((node.0, node.1)))
         } else {
