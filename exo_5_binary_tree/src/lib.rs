@@ -180,11 +180,8 @@ impl<K, V> Iterator for BinaryTreeMapIntoIterator<K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(current) = self._stack.pop_front() {
-            let mut current = *current;
-            if let Some(right) = current.right.take() {
-                self.dive_leftmost(*right);
-            }
+        if let Some(mut current) = self._stack.pop_front() {
+            current.right.take().map(|right| self.dive_leftmost(*right));
             current.node.and_then(|pair| Some((pair.0, pair.1)))
         } else {
             None
