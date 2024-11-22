@@ -10,7 +10,7 @@ pub struct BinaryTreeMap<K, V> {
 
 /// Hint: you may need to define additional structs/enums,
 /// or add trait bounds, etc.
-impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
+impl<K: PartialOrd, V> BinaryTreeMap<K, V> {
     pub fn new() -> Self {
         //todo!("Create a new empty map")
         Self {
@@ -46,26 +46,19 @@ impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
             + self.right.as_ref().map_or(0, |right| right.len())
     }
 
-    fn get_root_key(&self) -> Option<K> {
-        self.node.as_ref().and_then(|x| Some(x.0))
-    }
-
-    fn get_root_val(&self) -> Option<V> {
-        self.node.as_ref().and_then(|x| Some(x.1))
-    }
-
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        match self.get_root_key() {
+        match self.node.take() {
             None => {
                 self.node = Some(Box::new((key, value)));
                 None
             }
-            Some(root_key) => {
-                if key == root_key {
-                    let root_val = self.get_root_val();
+            Some(root) => {
+                if key == root.0 {
+                    let root_val = root.1;
                     self.node = Some(Box::new((key, value)));
-                    root_val
-                } else if key < root_key {
+                    Some(root_val)
+                } else if key < root.0 {
+                    self.node = Some(Box::new((root.0, root.1)));
                     match self.left.as_mut() {
                         None => {
                             self.left = Some(Box::new(BinaryTreeMap::new_leaf(key, value)));
@@ -74,6 +67,7 @@ impl<K: PartialOrd + Copy, V: Copy> BinaryTreeMap<K, V> {
                         Some(t) => t.insert(key, value),
                     }
                 } else {
+                    self.node = Some(Box::new((root.0, root.1)));
                     match self.right.as_mut() {
                         None => {
                             self.right = Some(Box::new(BinaryTreeMap::new_leaf(key, value)));
@@ -250,5 +244,15 @@ mod tests {
         assert_eq!(iter.next(), Some((4, "are")));
         assert_eq!(iter.next(), Some((5, "you?")));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn map_with_strings() {
+        let mut map = BinaryTreeMap::new();
+
+        map.insert(1, String::from("Hello"));
+        map.insert(4, String::from("are"));
+        map.insert(2, String::from("how"));
+        map.insert(5, String::from("you?"));
     }
 }
