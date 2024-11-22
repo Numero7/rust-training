@@ -182,7 +182,7 @@ impl<K, V> Iterator for BinaryTreeMapIntoIterator<K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(current) = self._stack.pop_front() {
             let mut current = *current;
-            let node: Option<Box<(K, V)>> = current.node.take();
+            let node = current.node.take();
             if let Some(right) = current.right.take() {
                 self.stack_left_most_branch(*right);
             }
