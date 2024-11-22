@@ -2,17 +2,128 @@ use std::collections::VecDeque;
 
 /// Maps keys of type `K` to values of type `V`.
 pub struct BinaryTreeMap<K, V> {
-    // TODO: add struct members,
-    node: Option<Box<(K, V)>>,
-    left: Option<Box<BinaryTreeMap<K, V>>>,  // Left child
-    right: Option<Box<BinaryTreeMap<K, V>>>, // Right child
+    /*
+    invariants:
+    size == 0 iff tree is empty
+    size == 1 iff tree is a leaf
+     */
+    //cached size of the tree
+    size: usize,
+    //the tree
+    tree: BinaryTree<K, V>,
 }
 
-/// Hint: you may need to define additional structs/enums,
-/// or add trait bounds, etc.
+struct BinaryTree<K, V> {
+    /*
+    invariants:
+    if node is None then both children are None as well
+    if left child is None then right child is None as well
+     */
+    node: Option<Box<(K, V)>>,
+    left: Option<Box<BinaryTree<K, V>>>,  // Left child
+    right: Option<Box<BinaryTree<K, V>>>, // Right child
+}
+
 impl<K: PartialOrd, V> BinaryTreeMap<K, V> {
     pub fn new() -> Self {
-        //todo!("Create a new empty map")
+        Self {
+            tree: BinaryTree::new(),
+            size: 0,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn check_invariants(&self) {
+        self.tree.check_invariants();
+        //size == 0 iff node is None
+        assert!(
+            (self.size > 0) || self.tree.is_empty(),
+            "size == 0 but tree is not empty",
+        );
+        assert!(
+            self.tree.is_empty() || (self.size > 0),
+            "tree is empty but size is > 0",
+        );
+        assert!(
+            (self.size != 1) || self.tree.is_leaf(),
+            "size == 1 but tree is not a leaf",
+        );
+        assert!(
+            !self.tree.is_leaf() || (self.size == 1),
+            "tree is a leaf but size != 1",
+        );
+    }
+
+    pub fn new_leaf(key: K, value: V) -> Self {
+        Self {
+            tree: BinaryTree::new_leaf(key, value),
+            size: 1,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        #[cfg(test)]
+        {
+            self.check_invariants();
+        }
+        return self.size == 0;
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        #[cfg(test)]
+        {
+            self.check_invariants();
+        }
+        return self.size == 1;
+    }
+
+    pub fn len(&self) -> usize {
+        return self.size;
+    }
+
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
+        #[cfg(test)]
+        {
+            self.check_invariants();
+        }
+        self.size = self.size + 1;
+        let result = self.tree.insert(key, value);
+        #[cfg(test)]
+        {
+            self.check_invariants();
+        }
+        result
+    }
+
+    pub fn get(&self, key: &K) -> Option<&V> {
+        self.tree.get(key)
+    }
+
+    pub fn contains(&self, key: &K) -> bool {
+        self.get(key).is_some()
+    }
+
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        #[cfg(test)]
+        {
+            self.check_invariants();
+        }
+        if self.size > 0 {
+            self.size = self.size - 1;
+            let result = self.tree.remove(key);
+            #[cfg(test)]
+            {
+                self.check_invariants();
+            }
+            result
+        } else {
+            None
+        }
+    }
+}
+
+impl<K: PartialOrd, V> BinaryTree<K, V> {
+    pub fn new() -> Self {
         Self {
             node: None,
             left: None,
@@ -20,30 +131,31 @@ impl<K: PartialOrd, V> BinaryTreeMap<K, V> {
         }
     }
 
+    #[cfg(test)]
+    pub fn check_invariants(&self) {
+        //if node is None then both left and right are None
+        assert!(
+            self.node.is_some() || (self.left.is_none() && self.right.is_none()),
+            "node is None but left is Some",
+        );
+    }
+
+    #[cfg(test)]
+    pub fn is_empty(&self) -> bool {
+        return self.node.is_none();
+    }
+
+    #[cfg(test)]
+    pub fn is_leaf(&self) -> bool {
+        return self.node.is_some() && self.left.is_none() && self.right.is_none();
+    }
+
     pub fn new_leaf(key: K, value: V) -> Self {
-        //todo!("Create a new empty map")
         Self {
             node: Some(Box::new((key, value))),
             left: None,
             right: None,
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        //todo!("Whether the map is empty")
-        return self.node.is_none();
-    }
-
-    pub fn is_leaf(&self) -> bool {
-        //todo!("Whether the map is empty")
-        return self.node.is_some() && self.left.is_none() && self.right.is_none();
-    }
-
-    pub fn len(&self) -> usize {
-        //todo!("Return the number of elements in the map")
-        self.node.as_ref().map_or(0, |_| 1)
-            + self.left.as_ref().map_or(0, |left| left.len())
-            + self.right.as_ref().map_or(0, |right| right.len())
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
@@ -61,7 +173,7 @@ impl<K: PartialOrd, V> BinaryTreeMap<K, V> {
                     self.node = Some(Box::new((root.0, root.1)));
                     match self.left.as_mut() {
                         None => {
-                            self.left = Some(Box::new(BinaryTreeMap::new_leaf(key, value)));
+                            self.left = Some(Box::new(BinaryTree::new_leaf(key, value)));
                             None
                         }
                         Some(t) => t.insert(key, value),
@@ -70,7 +182,7 @@ impl<K: PartialOrd, V> BinaryTreeMap<K, V> {
                     self.node = Some(Box::new((root.0, root.1)));
                     match self.right.as_mut() {
                         None => {
-                            self.right = Some(Box::new(BinaryTreeMap::new_leaf(key, value)));
+                            self.right = Some(Box::new(BinaryTree::new_leaf(key, value)));
                             None
                         }
                         Some(t) => t.insert(key, value),
@@ -81,7 +193,6 @@ impl<K: PartialOrd, V> BinaryTreeMap<K, V> {
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
-        //todo!("Retrieve the value associated to a key if it exists")
         if let Some(ref root) = self.node {
             if root.0 == *key {
                 Some(&root.1)
@@ -95,13 +206,7 @@ impl<K: PartialOrd, V> BinaryTreeMap<K, V> {
         }
     }
 
-    pub fn contains(&self, key: &K) -> bool {
-        //todo!("Whether the map contains the given key")
-        self.get(key).is_some()
-    }
-
     pub fn remove(&mut self, key: &K) -> Option<V> {
-        //todo!("If there is a value with the given key, remove it from the map and return it")
         if let Some(root) = self.node.as_mut() {
             if *key < root.0 {
                 self.left.as_mut()?.remove(key)
@@ -140,18 +245,18 @@ impl<K: Ord, V> IntoIterator for BinaryTreeMap<K, V> {
     type IntoIter = BinaryTreeMapIntoIterator<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
-        BinaryTreeMapIntoIterator::new(self)
+        BinaryTreeMapIntoIterator::new(self.tree)
     }
 }
 
 pub struct BinaryTreeMapIntoIterator<K, V> {
     //depth first exploration of the tree based on stack
     //invariant (I): if the stack is not empty, the top element has no left child
-    _stack: VecDeque<Box<BinaryTreeMap<K, V>>>,
+    _stack: VecDeque<Box<BinaryTree<K, V>>>,
 }
 
 impl<K, V> BinaryTreeMapIntoIterator<K, V> {
-    fn new(t: BinaryTreeMap<K, V>) -> Self {
+    fn new(t: BinaryTree<K, V>) -> Self {
         let mut _self = Self {
             _stack: VecDeque::new(),
         };
@@ -160,7 +265,7 @@ impl<K, V> BinaryTreeMapIntoIterator<K, V> {
     }
 
     //stores the left most branch on the stack. Guarantees (I)
-    fn dive_leftmost(&mut self, mut t: BinaryTreeMap<K, V>) {
+    fn dive_leftmost(&mut self, mut t: BinaryTree<K, V>) {
         while let Some(left) = t.left.take() {
             self._stack.push_front(Box::new(t));
             t = *left;
