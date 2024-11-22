@@ -17,7 +17,6 @@ struct BinaryTree<K, V> {
     /*
     invariants:
     if node is None then both children are None as well
-    if left child is None then right child is None as well
      */
     node: Option<Box<(K, V)>>,
     left: Option<Box<BinaryTree<K, V>>>,  // Left child
