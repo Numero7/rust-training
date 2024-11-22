@@ -152,11 +152,11 @@ impl<K: Ord, V> IntoIterator for BinaryTreeMap<K, V> {
 
 pub struct BinaryTreeMapIntoIterator<K, V> {
     //depth first exploration of the tree based on stack
+    //invariant (I): if the stack is not empty, the top element has no left child
     _stack: VecDeque<Box<BinaryTreeMap<K, V>>>,
 }
 
 impl<K, V> BinaryTreeMapIntoIterator<K, V> {
-    //store the root on the stack
     fn new(t: BinaryTreeMap<K, V>) -> Self {
         let mut _self = Self {
             _stack: VecDeque::new(),
@@ -165,6 +165,7 @@ impl<K, V> BinaryTreeMapIntoIterator<K, V> {
         _self
     }
 
+    //stores the left most branch on the stack. Guarantees (I)
     fn dive_leftmost(&mut self, mut t: BinaryTreeMap<K, V>) {
         while let Some(left) = t.left.take() {
             self._stack.push_front(Box::new(t));
@@ -176,12 +177,14 @@ impl<K, V> BinaryTreeMapIntoIterator<K, V> {
 
 impl<K, V> Iterator for BinaryTreeMapIntoIterator<K, V> {
     //when asked for some element, output the current node content
-    //if right son exists, push the RLL...L branch on the stack
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(mut current) = self._stack.pop_front() {
+            //invariant (I): current.left is None
+            //if the current node has a right child R, dive along RLLL...L
             current.right.take().map(|right| self.dive_leftmost(*right));
+            //output (key,value) pair stored on the current node
             current.node.and_then(|pair| Some((pair.0, pair.1)))
         } else {
             None
